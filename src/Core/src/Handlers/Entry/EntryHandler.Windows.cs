@@ -34,12 +34,12 @@ namespace Microsoft.Maui.Handlers
 		{
 			platformView.KeyUp += OnPlatformKeyUp;
 			platformView.TextChanged += OnPlatformTextChanged;
-			platformView.Loaded += OnPlatformLoaded;
+			platformView.SizeChanged += OnPlatformViewSizeChanged;
 		}
 
 		protected override void DisconnectHandler(TextBox platformView)
 		{
-			platformView.Loaded -= OnPlatformLoaded;
+			platformView.SizeChanged -= OnPlatformViewSizeChanged;
 			platformView.KeyUp -= OnPlatformKeyUp;
 			platformView.TextChanged -= OnPlatformTextChanged;
 
@@ -69,6 +69,9 @@ namespace Microsoft.Maui.Handlers
 
 		public static void MapIsTextPredictionEnabled(IEntryHandler handler, IEntry entry) =>
 			handler.PlatformView?.UpdateIsTextPredictionEnabled(entry);
+
+		public static void MapIsSpellCheckEnabled(IEntryHandler handler, IEntry entry) =>
+			handler.PlatformView?.UpdateIsSpellCheckEnabled(entry);
 
 		public static void MapMaxLength(IEntryHandler handler, IEntry entry) =>
 			handler.PlatformView?.UpdateMaxLength(entry);
@@ -130,17 +133,17 @@ namespace Microsoft.Maui.Handlers
 
 		void OnPlatformSelectionChanged(object sender, RoutedEventArgs e)
 		{
-			var cursorPostion = PlatformView.GetCursorPosition();
+			var cursorPosition = PlatformView.GetCursorPosition();
 			var selectedTextLength = PlatformView.SelectionLength;
 
-			if (VirtualView.CursorPosition != cursorPostion)
-				VirtualView.CursorPosition = cursorPostion;
+			if (VirtualView.CursorPosition != cursorPosition)
+				VirtualView.CursorPosition = cursorPosition;
 
 			if (VirtualView.SelectionLength != selectedTextLength)
 				VirtualView.SelectionLength = selectedTextLength;
 		}
 
-		void OnPlatformLoaded(object sender, RoutedEventArgs e) =>
+		void OnPlatformViewSizeChanged(object sender, SizeChangedEventArgs e) =>
 			MauiTextBox.InvalidateAttachedProperties(PlatformView);
 	}
 }

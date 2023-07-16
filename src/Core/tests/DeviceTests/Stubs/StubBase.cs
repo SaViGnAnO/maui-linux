@@ -7,7 +7,7 @@ using Microsoft.Maui.Primitives;
 
 namespace Microsoft.Maui.DeviceTests.Stubs
 {
-	public class StubBase : ElementStub, IView, IVisualTreeElement, IToolTipElement
+	public class StubBase : ElementStub, IStubBase
 	{
 		IElementHandler IElement.Handler
 		{
@@ -19,7 +19,7 @@ namespace Microsoft.Maui.DeviceTests.Stubs
 
 		public bool IsFocused { get; set; }
 
-		public List<StubBase> Children { get; set; }
+		public IList<IView> Children { get; set; } = new List<IView>();
 
 		public Visibility Visibility { get; set; } = Visibility.Visible;
 
@@ -95,6 +95,11 @@ namespace Microsoft.Maui.DeviceTests.Stubs
 		{
 			Frame = bounds;
 			DesiredSize = bounds.Size;
+
+			// If this view is attached to the visual tree then let's arrange it
+			if (IsLoaded)
+				Handler?.PlatformArrange(Frame);
+
 			return DesiredSize;
 		}
 
@@ -120,17 +125,23 @@ namespace Microsoft.Maui.DeviceTests.Stubs
 		{
 		}
 
-		public bool Focus() => false;
+		public bool Focus()
+		{
+			FocusRequest focusRequest = new FocusRequest();
+			return Handler?.InvokeWithResult(nameof(IView.Focus), focusRequest) ?? false;
+		}
 
 		public void Unfocus()
 		{
+			IsFocused = false;
 		}
 
 		public Size Measure(double widthConstraint, double heightConstraint)
 		{
 			if (Handler != null)
 			{
-				return Handler.GetDesiredSize(widthConstraint, heightConstraint);
+				DesiredSize = Handler.GetDesiredSize(widthConstraint, heightConstraint);
+				return DesiredSize;
 			}
 
 			return new Size(widthConstraint, heightConstraint);
@@ -139,5 +150,22 @@ namespace Microsoft.Maui.DeviceTests.Stubs
 		IReadOnlyList<Maui.IVisualTreeElement> IVisualTreeElement.GetVisualChildren() => this.Children.Cast<IVisualTreeElement>().ToList().AsReadOnly();
 
 		IVisualTreeElement IVisualTreeElement.GetVisualParent() => this.Parent as IVisualTreeElement;
+
+		PropertyMapper IPropertyMapperView.GetPropertyMapperOverrides() =>
+			PropertyMapperOverrides;
+
+		public PropertyMapper PropertyMapperOverrides
+		{
+			get;
+			set;
+		}
+
+		public bool IsLoaded
+		{
+			get
+			{
+				return (Handler as IPlatformViewHandler)?.PlatformView?.IsLoaded() == true;
+			}
+		}
 	}
 }

@@ -1,5 +1,4 @@
-﻿#nullable enable
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Android.Content;
@@ -154,6 +153,11 @@ namespace Microsoft.Maui.Controls.Platform
 					dad.Color = AGraphics.Color.White;
 
 				nativeToolbar.NavigationIcon.SetColorFilter(navIconColor, FilterMode.SrcAtop);
+			}
+
+			if (navIconColor != null && nativeToolbar.OverflowIcon != null)
+			{
+				nativeToolbar.OverflowIcon.SetColorFilter(navIconColor, FilterMode.SrcAtop);
 			}
 		}
 
@@ -322,6 +326,8 @@ namespace Microsoft.Maui.Controls.Platform
 
 			if (item.Order != ToolbarItemOrder.Secondary)
 				menuitem.SetShowAsAction(ShowAsAction.Always);
+			else
+				menuitem.SetShowAsAction(ShowAsAction.Never);
 
 			menuitem.SetOnMenuItemClickListener(new GenericMenuClickListener(((IMenuItemController)item).Activate));
 

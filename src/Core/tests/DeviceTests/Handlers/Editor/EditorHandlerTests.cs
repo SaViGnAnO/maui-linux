@@ -8,7 +8,7 @@ using Xunit;
 namespace Microsoft.Maui.DeviceTests
 {
 	[Category(TestCategory.Editor)]
-	public partial class EditorHandlerTests : HandlerTestBase<EditorHandler, EditorStub>
+	public partial class EditorHandlerTests : CoreHandlerTestBase<EditorHandler, EditorStub>
 	{
 		[Fact(DisplayName = "Text Initializes Correctly")]
 		public async Task TextInitializesCorrectly()
@@ -93,8 +93,8 @@ namespace Microsoft.Maui.DeviceTests
 		}
 
 		[Theory(DisplayName = "PlaceholderColor Updates Correctly")]
-		[InlineData(0xFF0000, 0x0000FF)]
-		[InlineData(0x0000FF, 0xFF0000)]
+		[InlineData(0xFFFF0000, 0xFF0000FF)]
+		[InlineData(0xFF0000FF, 0xFFFF0000)]
 		public async Task PlaceholderColorUpdatesCorrectly(uint setValue, uint unsetValue)
 		{
 			var editor = new EditorStub
@@ -220,22 +220,40 @@ namespace Microsoft.Maui.DeviceTests
 			//Assert.Equal(expectedText, editor.Text);
 		}
 
-		[Theory(DisplayName = "Is Text Prediction Enabled")]
+		[Theory(DisplayName = "IsTextPredictionEnabled Initializes Correctly")]
 		[InlineData(true)]
 		[InlineData(false)]
-		public async Task IsTextPredictionEnabledCorrectly(bool isEnabled)
+		public async Task IsTextPredictionEnabledInitializesCorrectly(bool isEnabled)
 		{
 			var editor = new EditorStub()
 			{
 				IsTextPredictionEnabled = isEnabled
 			};
 
-			var nativeIsTextPredictionEnabled = await GetValueAsync(editor, handler =>
+			await AttachAndRun(editor, async (editorHandler) =>
 			{
-				return GetNativeIsTextPredictionEnabled(handler);
+				await AssertionExtensions.Wait(() => editorHandler.PlatformView.IsLoaded());
 			});
 
-			Assert.Equal(isEnabled, nativeIsTextPredictionEnabled);
+			await ValidatePropertyInitValue(editor, () => editor.IsTextPredictionEnabled, GetNativeIsTextPredictionEnabled, isEnabled);
+		}
+
+		[Theory(DisplayName = "IsSpellCheckEnabled Initializes Correctly")]
+		[InlineData(true)]
+		[InlineData(false)]
+		public async Task IsSpellCheckEnabledInitializesCorrectly(bool isEnabled)
+		{
+			var editor = new EditorStub
+			{
+				IsSpellCheckEnabled = isEnabled
+			};
+
+			await AttachAndRun(editor, async (editorHandler) =>
+			{
+				await AssertionExtensions.Wait(() => editorHandler.PlatformView.IsLoaded());
+			});
+
+			await ValidatePropertyInitValue(editor, () => editor.IsSpellCheckEnabled, GetNativeIsSpellCheckEnabled, isEnabled);
 		}
 
 		[Theory(DisplayName = "IsTextPredictionEnabled Updates Correctly")]
@@ -245,7 +263,15 @@ namespace Microsoft.Maui.DeviceTests
 		[InlineData(false, false)]
 		public async Task IsTextPredictionEnabledUpdatesCorrectly(bool setValue, bool unsetValue)
 		{
-			var editor = new EditorStub();
+			var editor = new EditorStub()
+			{
+				IsTextPredictionEnabled = setValue
+			};
+
+			await AttachAndRun(editor, async (editorHandler) =>
+			{
+				await AssertionExtensions.Wait(() => editorHandler.PlatformView.IsLoaded());
+			});
 
 			await ValidatePropertyUpdatesValue(
 				editor,
@@ -254,6 +280,59 @@ namespace Microsoft.Maui.DeviceTests
 				setValue,
 				unsetValue);
 		}
+
+		[Theory(DisplayName = "IsSpellCheckEnabled Updates Correctly")]
+		[InlineData(true, true)]
+		[InlineData(true, false)]
+		[InlineData(false, true)]
+		[InlineData(false, false)]
+		public async Task IsSpellCheckEnabledUpdatesCorrectly(bool setValue, bool unsetValue)
+		{
+			var editor = new EditorStub()
+			{
+				IsSpellCheckEnabled = setValue
+			};
+
+			await AttachAndRun(editor, async (editorHandler) =>
+			{
+				await AssertionExtensions.Wait(() => editorHandler.PlatformView.IsLoaded());
+			});
+
+			await ValidatePropertyUpdatesValue(
+				editor,
+				nameof(IEditor.IsSpellCheckEnabled),
+				GetNativeIsSpellCheckEnabled,
+				setValue,
+				unsetValue);
+		}
+
+		[Theory(DisplayName = "IsTextPredictionEnabled differs from IsSpellCheckEnabled")]
+		[InlineData(true, true)]
+		[InlineData(true, false)]
+		[InlineData(false, true)]
+		[InlineData(false, false)]
+		public async Task TextPredictionDiffersFromSpellChecking(bool textPredictionValue, bool spellCheckValue)
+		{
+			// Test to prevent: https://github.com/dotnet/maui/issues/8558
+			var areValuesEqual = textPredictionValue == spellCheckValue;
+
+			var editor = new EditorStub()
+			{
+				IsTextPredictionEnabled = textPredictionValue,
+				IsSpellCheckEnabled = spellCheckValue
+			};
+
+			await AttachAndRun(editor, async (editorHandler) =>
+			{
+				await AssertionExtensions.Wait(() => editorHandler.PlatformView.IsLoaded());
+			});
+
+			var nativeTextPrediction = await GetValueAsync(editor, GetNativeIsTextPredictionEnabled);
+			var nativeSpellChecking = await GetValueAsync(editor, GetNativeIsSpellCheckEnabled);
+
+			Assert.Equal(areValuesEqual, (nativeTextPrediction == nativeSpellChecking));
+		}
+
 
 		[Theory(DisplayName = "Validates Numeric Keyboard")]
 		[InlineData(nameof(Keyboard.Chat), false)]
@@ -328,7 +407,12 @@ namespace Microsoft.Maui.DeviceTests
 		}
 
 		[Theory(DisplayName = "Validates Text Keyboard")]
+#if ANDROID || IOS || MACCATALYST
+		// Android text and Chat keyboards are the same
+		[InlineData(nameof(Keyboard.Chat), true)]
+#else
 		[InlineData(nameof(Keyboard.Chat), false)]
+#endif
 		[InlineData(nameof(Keyboard.Email), false)]
 		[InlineData(nameof(Keyboard.Numeric), false)]
 		[InlineData(nameof(Keyboard.Telephone), false)]
@@ -339,6 +423,10 @@ namespace Microsoft.Maui.DeviceTests
 		[InlineData(nameof(Keyboard.Default), true)]
 		// Plain is the same as the Default keyboard on Windows
 		[InlineData(nameof(Keyboard.Plain), true)]
+#elif IOS || MACCATALYST
+		// On ios the text and default keyboards are the same
+		[InlineData(nameof(Keyboard.Default), true)]
+		[InlineData(nameof(Keyboard.Plain), false)]
 #else
 		[InlineData(nameof(Keyboard.Default), false)]
 		[InlineData(nameof(Keyboard.Plain), false)]
@@ -354,12 +442,22 @@ namespace Microsoft.Maui.DeviceTests
 
 		[Theory(DisplayName = "Validates Chat Keyboard")]
 		[InlineData(nameof(Keyboard.Chat), true)]
+#if IOS || MACCATALYST
+		// On iOS the default and chat keyboard are the same
+		[InlineData(nameof(Keyboard.Default), true)]
+#else
 		[InlineData(nameof(Keyboard.Default), false)]
+#endif
 		[InlineData(nameof(Keyboard.Email), false)]
 		[InlineData(nameof(Keyboard.Numeric), false)]
 		[InlineData(nameof(Keyboard.Plain), false)]
 		[InlineData(nameof(Keyboard.Telephone), false)]
+#if ANDROID || IOS || MACCATALYST
+		// Android & iOS text and Chat keyboards are the same
+		[InlineData(nameof(Keyboard.Text), true)]
+#else
 		[InlineData(nameof(Keyboard.Text), false)]
+#endif
 		[InlineData(nameof(Keyboard.Url), false)]
 		public async Task ValidateChatKeyboard(string keyboardName, bool expected)
 		{
@@ -368,6 +466,54 @@ namespace Microsoft.Maui.DeviceTests
 			var editor = new EditorStub() { Keyboard = keyboard };
 
 			await ValidatePropertyInitValue(editor, () => expected, GetNativeIsChatKeyboard, expected);
+		}
+
+		[Theory(DisplayName = "Vertical TextAlignment Initializes Correctly")]
+		[InlineData(TextAlignment.Start)]
+		[InlineData(TextAlignment.Center)]
+		[InlineData(TextAlignment.End)]
+		public async Task VerticalTextAlignmentInitializesCorrectly(TextAlignment textAlignment)
+		{
+			var editor = new EditorStub
+			{
+				VerticalTextAlignment = textAlignment
+			};
+
+			var platformAlignment = GetNativeVerticalTextAlignment(textAlignment);
+
+			var values =
+				await AttachAndRun(editor, (handler) =>
+					new
+					{
+						ViewValue = editor.VerticalTextAlignment,
+						PlatformViewValue = GetNativeVerticalTextAlignment(handler)
+					});
+
+			Assert.Equal(textAlignment, values.ViewValue);
+			Assert.Equal(platformAlignment, values.PlatformViewValue);
+		}
+
+		[Category(TestCategory.Editor)]
+		public class EditorTextStyleTests : TextStyleHandlerTests<EditorHandler, EditorStub>
+		{
+		}
+
+		[Category(TestCategory.Editor)]
+		public class EditorFocusTests : FocusHandlerTests<EditorHandler, EditorStub, VerticalStackLayoutStub>
+		{
+		}
+
+		[Category(TestCategory.Editor)]
+		public class EditorTextInputTests : TextInputHandlerTests<EditorHandler, EditorStub>
+		{
+			protected override void SetNativeText(EditorHandler editorHandler, string text) =>
+				EditorHandlerTests.SetNativeText(editorHandler, text);
+
+			protected override int GetCursorStartPosition(EditorHandler editorHandler) =>
+				EditorHandlerTests.GetCursorStartPosition(editorHandler);
+
+			protected override void UpdateCursorStartPosition(EditorHandler editorHandler, int position) =>
+				EditorHandlerTests.UpdateCursorStartPosition(editorHandler, position);
 		}
 	}
 }

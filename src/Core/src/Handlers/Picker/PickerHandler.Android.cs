@@ -6,12 +6,13 @@ using Android.Graphics.Drawables;
 using Android.Text;
 using Android.Text.Style;
 using AResource = Android.Resource;
+using AppCompatAlertDialog = AndroidX.AppCompat.App.AlertDialog;
 
 namespace Microsoft.Maui.Handlers
 {
 	public partial class PickerHandler : ViewHandler<IPicker, MauiPicker>
 	{
-		AlertDialog? _dialog;
+		AppCompatAlertDialog? _dialog;
 
 		protected override MauiPicker CreatePlatformView() =>
 			new MauiPicker(Context);
@@ -38,7 +39,7 @@ namespace Microsoft.Maui.Handlers
 			handler.PlatformView?.UpdateBackground(picker);
 		}
 
-		// Uncomment me on NET7 [Obsolete]
+		// TODO Uncomment me on NET8 [Obsolete]
 		public static void MapReload(IPickerHandler handler, IPicker picker, object? args) => Reload(handler);
 
 		internal static void MapItems(IPickerHandler handler, IPicker picker) => Reload(handler);
@@ -108,7 +109,7 @@ namespace Microsoft.Maui.Handlers
 		{
 			if (_dialog == null && VirtualView != null)
 			{
-				using (var builder = new AlertDialog.Builder(Context))
+				using (var builder = new AppCompatAlertDialog.Builder(Context))
 				{
 					if (VirtualView.TitleColor == null)
 					{
@@ -146,6 +147,8 @@ namespace Microsoft.Maui.Handlers
 
 				if (_dialog == null)
 					return;
+
+				_dialog.UpdateFlowDirection(PlatformView);
 
 				_dialog.SetCanceledOnTouchOutside(true);
 

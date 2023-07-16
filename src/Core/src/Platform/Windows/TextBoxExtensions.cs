@@ -154,6 +154,11 @@ namespace Microsoft.Maui.Platform
 			textBox.UpdateInputScope(textInput);
 		}
 
+		public static void UpdateIsSpellCheckEnabled(this TextBox textBox, ITextInput textInput)
+		{
+			textBox.UpdateInputScope(textInput);
+		}
+
 		public static void UpdateKeyboard(this TextBox textBox, ITextInput textInput)
 		{
 			textBox.UpdateInputScope(textInput);
@@ -169,7 +174,7 @@ namespace Microsoft.Maui.Platform
 			else
 			{
 				textBox.IsTextPredictionEnabled = textInput.IsTextPredictionEnabled;
-				textBox.IsSpellCheckEnabled = textInput.IsTextPredictionEnabled;
+				textBox.IsSpellCheckEnabled = textInput.IsSpellCheckEnabled;
 			}
 
 			var inputScope = new InputScope();
@@ -211,7 +216,7 @@ namespace Microsoft.Maui.Platform
 				textBox.SelectionLength = entry.SelectionLength;
 		}
 
-		// TODO: NET7 issoto - Revisit this, marking this method as `internal` to avoid breaking public API changes
+		// TODO: NET8 issoto - Revisit this, marking this method as `internal` to avoid breaking public API changes
 		internal static int GetCursorPosition(this TextBox textBox, int cursorOffset = 0)
 		{
 			var newCursorPosition = textBox.SelectionStart + cursorOffset;

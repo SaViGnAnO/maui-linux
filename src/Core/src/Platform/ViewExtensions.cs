@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 using Microsoft.Maui.Graphics;
 using System.Threading.Tasks;
@@ -30,7 +30,7 @@ using ParentView = System.Object;
 
 namespace Microsoft.Maui.Platform
 {
-	/// <include file="../../docs/Microsoft.Maui/ViewExtensions.xml" path="Type[@FullName='Microsoft.Maui.ViewExtensions']/Docs" />
+	/// <include file="../../docs/Microsoft.Maui/ViewExtensions.xml" path="Type[@FullName='Microsoft.Maui.ViewExtensions']/Docs/*" />
 	public static partial class ViewExtensions
 	{
 		internal static Vector3 ExtractPosition(this Matrix4x4 matrix) => matrix.Translation;
@@ -41,13 +41,18 @@ namespace Microsoft.Maui.Platform
 
 		internal static double ExtractAngleInDegrees(this Matrix4x4 matrix) => ExtractAngleInRadians(matrix) * 180 / Math.PI;
 
-		/// <include file="../../docs/Microsoft.Maui/ViewExtensions.xml" path="//Member[@MemberName='ToHandler']/Docs" />
 
 		public static IViewHandler ToHandler(this IView view, IMauiContext context) =>
 			(IViewHandler)ElementExtensions.ToHandler(view, context);
 
 		internal static T? GetParentOfType<T>(this ParentView? view)
+#if ANDROID
+			where T : class, ParentView
+#elif PLATFORM
+			where T : ParentView
+#else
 			where T : class
+#endif
 		{
 			if (view is T t)
 				return t;
@@ -58,11 +63,7 @@ namespace Microsoft.Maui.Platform
 				if (parent != null)
 					return parent;
 
-#if TIZEN
 				view = view?.GetParent() as ParentView;
-#else
-				view = view?.GetParent();
-#endif
 			}
 
 			return default;
@@ -75,19 +76,11 @@ namespace Microsoft.Maui.Platform
 
 			while (view != null)
 			{
-#if TIZEN
 				var parent = view?.GetParent() as ParentView;
-#else
-				var parent = view?.GetParent();
-#endif
 				if (searchExpression(parent))
 					return parent;
 
-#if TIZEN
 				view = view?.GetParent() as ParentView;
-#else
-				view = view?.GetParent();
-#endif
 			}
 
 			return default;
@@ -95,7 +88,13 @@ namespace Microsoft.Maui.Platform
 
 #if WINDOWS || ANDROID
 		internal static T? GetParentOfType<T>(this PlatformView view)
+#if ANDROID
+			where T : class, ParentView
+#elif PLATFORM
+			where T : ParentView
+#else
 			where T : class
+#endif
 		{
 			if (view is T t)
 				return t;
@@ -103,6 +102,36 @@ namespace Microsoft.Maui.Platform
 			return view.GetParent()?.GetParentOfType<T>();
 		}
 #endif
+
+		internal static IDisposable OnUnloaded(this IElement element, Action action)
+		{
+#if PLATFORM
+			if (element.Handler is IPlatformViewHandler platformViewHandler &&
+				platformViewHandler.PlatformView != null)
+			{
+				return platformViewHandler.PlatformView.OnUnloaded(action);
+			}
+
+			throw new InvalidOperationException("Handler is not set on element");
+#else
+			throw new NotImplementedException();
+#endif
+		}
+
+		internal static IDisposable OnLoaded(this IElement element, Action action)
+		{
+#if PLATFORM
+			if (element.Handler is IPlatformViewHandler platformViewHandler &&
+				platformViewHandler.PlatformView != null)
+			{
+				return platformViewHandler.PlatformView.OnLoaded(action);
+			}
+
+			throw new InvalidOperationException("Handler is not set on element");
+#else
+			throw new NotImplementedException();
+#endif
+		}
 
 #if PLATFORM
 		internal static Task OnUnloadedAsync(this PlatformView platformView, TimeSpan? timeOut = null)
@@ -121,5 +150,17 @@ namespace Microsoft.Maui.Platform
 			return taskCompletionSource.Task.WaitAsync(timeOut.Value);
 		}
 #endif
+		internal static bool IsLoadedOnPlatform(this IElement element)
+		{
+			if (element.Handler is not IPlatformViewHandler pvh)
+				return false;
+
+#if PLATFORM
+			return pvh.PlatformView?.IsLoaded() == true;
+#else
+			return true;
+#endif
+
+		}
 	}
 }

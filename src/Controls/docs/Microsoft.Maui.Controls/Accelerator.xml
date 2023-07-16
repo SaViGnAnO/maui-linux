@@ -14,7 +14,7 @@
   <Interfaces />
   <Attributes>
     <Attribute>
-      <AttributeName>Microsoft.Maui.Controls.TypeConverter(typeof(Microsoft.Maui.Controls.AcceleratorTypeConverter))</AttributeName>
+      <AttributeName>System.ComponentModel.TypeConverter(typeof(Microsoft.Maui.Controls.AcceleratorTypeConverter))</AttributeName>
     </Attribute>
   </Attributes>
   <Docs>
@@ -100,31 +100,6 @@
       <MemberSignature Language="ILAsm" Value=".property instance class System.Collections.Generic.IEnumerable`1&lt;string&gt; Keys" />
       <MemberSignature Language="DocId" Value="P:Microsoft.Maui.Controls.Accelerator.Keys" />
       <MemberSignature Language="F#" Value="member this.Keys : seq&lt;string&gt; with get, set" Usage="Microsoft.Maui.Controls.Accelerator.Keys" />
-      <MemberType>Property</MemberType>
-      <AssemblyInfo>
-        <AssemblyVersion>0.0.0.0</AssemblyVersion>
-        <AssemblyVersion>2.0.0.0</AssemblyVersion>
-        <AssemblyName>Microsoft.Maui.Controls.Core</AssemblyName>
-      </AssemblyInfo>
-      <Attributes>
-        <Attribute>
-          <AttributeName>System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)</AttributeName>
-        </Attribute>
-      </Attributes>
-      <ReturnValue>
-        <ReturnType>System.Collections.Generic.IEnumerable&lt;System.String&gt;</ReturnType>
-      </ReturnValue>
-      <Docs>
-        <summary>For internal use only.</summary>
-        <value>To be added.</value>
-        <remarks>To be added.</remarks>
-      </Docs>
-    </Member>
-    <Member MemberName="Modifiers">
-      <MemberSignature Language="C#" Value="public System.Collections.Generic.IEnumerable&lt;string&gt; Modifiers { get; set; }" />
-      <MemberSignature Language="ILAsm" Value=".property instance class System.Collections.Generic.IEnumerable`1&lt;string&gt; Modifiers" />
-      <MemberSignature Language="DocId" Value="P:Microsoft.Maui.Controls.Accelerator.Modifiers" />
-      <MemberSignature Language="F#" Value="member this.Modifiers : seq&lt;string&gt; with get, set" Usage="Microsoft.Maui.Controls.Accelerator.Modifiers" />
       <MemberType>Property</MemberType>
       <AssemblyInfo>
         <AssemblyVersion>0.0.0.0</AssemblyVersion>

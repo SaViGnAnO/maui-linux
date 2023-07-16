@@ -38,9 +38,14 @@ namespace Microsoft.Maui.Handlers
 
 		}
 
-		public ActivityIndicatorHandler(IPropertyMapper mapper) : base(mapper ?? Mapper, CommandMapper)
+		public ActivityIndicatorHandler(IPropertyMapper? mapper)
+			: base(mapper ?? Mapper, CommandMapper)
 		{
+		}
 
+		public ActivityIndicatorHandler(IPropertyMapper? mapper, CommandMapper? commandMapper)
+			: base(mapper ?? Mapper, commandMapper ?? CommandMapper)
+		{
 		}
 
 		IActivityIndicator IActivityIndicatorHandler.VirtualView => VirtualView;
