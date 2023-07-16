@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable disable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,9 +26,12 @@ namespace Microsoft.Maui.Controls.Platform
 
 		internal void Unsubscribe(Window window)
 		{
-			var nativeWindow = window?.MauiContext.GetPlatformWindow();
+			IMauiContext mauiContext = window?.Handler?.MauiContext;
+			var platformWindow = mauiContext?.GetPlatformWindow();
+			if (platformWindow == null)
+				return;
 
-			var toRemove = Subscriptions.Where(s => s.Window == nativeWindow).ToList();
+			var toRemove = Subscriptions.Where(s => s.Window == platformWindow).ToList();
 
 			foreach (AlertRequestHelper alertRequestHelper in toRemove)
 			{
@@ -48,10 +52,12 @@ namespace Microsoft.Maui.Controls.Platform
 		{
 			Window = window;
 
+#pragma warning disable CS0618 // TODO: Remove when we internalize/replace MessagingCenter
 			MessagingCenter.Subscribe<Page, bool>(Window, Page.BusySetSignalName, OnBusySetRequest);
 			MessagingCenter.Subscribe<Page, AlertArguments>(Window, Page.AlertSignalName, OnAlertRequest);
 			MessagingCenter.Subscribe<Page, ActionSheetArguments>(Window, Page.ActionSheetSignalName, OnActionSheetRequest);
 			MessagingCenter.Subscribe<Page, PromptArguments>(Window, Page.PromptSignalName, OnPromptRequested);
+#pragma warning restore CS0618 // Type or member is obsolete
 			_modalStack = modalStack;
 		}
 
@@ -59,10 +65,12 @@ namespace Microsoft.Maui.Controls.Platform
 
 		public void Dispose()
 		{
+#pragma warning disable CS0618 // TODO: Remove when we internalize/replace MessagingCenter
 			MessagingCenter.Unsubscribe<Page, AlertArguments>(Window, Page.AlertSignalName);
 			MessagingCenter.Unsubscribe<Page, bool>(Window, Page.BusySetSignalName);
 			MessagingCenter.Unsubscribe<Page, ActionSheetArguments>(Window, Page.ActionSheetSignalName);
 			MessagingCenter.Unsubscribe<Page, PromptArguments>(Window, Page.PromptSignalName);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		void OnBusySetRequest(Page sender, bool enabled)

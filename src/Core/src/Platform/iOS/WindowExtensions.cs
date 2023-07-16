@@ -9,7 +9,14 @@ namespace Microsoft.Maui.Platform
 {
 	public static partial class WindowExtensions
 	{
-#if MACCATALYST
+		internal static void UpdateTitle(this UIWindow platformWindow, IWindow window)
+		{
+			// If you set the title to null the app will crash
+			// If you set it to an empty string the title reverts back to the 
+			// default app title.
+			if (OperatingSystem.IsIOSVersionAtLeast(13) && platformWindow.WindowScene is not null)
+				platformWindow.WindowScene.Title = window.Title ?? String.Empty;
+		}
 
 		internal static void UpdateX(this UIWindow platformWindow, IWindow window) =>
 			platformWindow.UpdateUnsupportedCoordinate(window);
@@ -23,13 +30,8 @@ namespace Microsoft.Maui.Platform
 		internal static void UpdateHeight(this UIWindow platformWindow, IWindow window) =>
 			platformWindow.UpdateUnsupportedCoordinate(window);
 
-		internal static void UpdateUnsupportedCoordinate(this UIWindow platformWindow, IWindow window)
-		{
-			if (!OperatingSystem.IsIOSVersionAtLeast(13))
-				return;
-
+		internal static void UpdateUnsupportedCoordinate(this UIWindow platformWindow, IWindow window) =>
 			window.FrameChanged(platformWindow.Bounds.ToRectangle());
-		}
 
 		public static void UpdateMaximumWidth(this UIWindow platformWindow, IWindow window) =>
 			platformWindow.UpdateMaximumSize(window.MaximumWidth, window.MaximumHeight);
@@ -82,8 +84,6 @@ namespace Microsoft.Maui.Platform
 
 			restrictions.MinimumSize = new CoreGraphics.CGSize(width, height);
 		}
-
-#endif
 
 		internal static IWindow? GetHostedWindow(this UIWindow? uiWindow)
 		{

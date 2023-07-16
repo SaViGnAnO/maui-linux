@@ -13,6 +13,50 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 	public class ShellModalTests : ShellTestBase
 	{
 		[Fact]
+		public async Task AppearingAndDisappearingFireOnMultipleModals()
+		{
+			var windowPage = new ContentPage();
+			var modalPage1 = new ContentPage();
+			var modalPage2 = new ContentPage();
+
+			int modal1Appearing = 0;
+			int modal1Disappearing = 0;
+			int modal2Appearing = 0;
+			int modal2Disappearing = 0;
+			int windowAppearing = 0;
+			int windowDisappearing = 0;
+
+			modalPage1.Appearing += (_, _) => modal1Appearing++;
+			modalPage1.Disappearing += (_, _) => modal1Disappearing++;
+
+			modalPage2.Appearing += (_, _) => modal2Appearing++;
+			modalPage2.Disappearing += (_, _) => modal2Disappearing++;
+
+			windowPage.Appearing += (_, _) => windowAppearing++;
+			windowPage.Disappearing += (_, _) => windowDisappearing++;
+
+			var window = new TestWindow(new TestShell() { CurrentItem = windowPage });
+			await windowPage.Navigation.PushModalAsync(modalPage1);
+			Assert.Equal(1, modal1Appearing);
+
+			await windowPage.Navigation.PushModalAsync(modalPage2);
+			Assert.Equal(1, modal2Appearing);
+			Assert.Equal(1, modal1Disappearing);
+
+			await windowPage.Navigation.PopModalAsync();
+			await windowPage.Navigation.PopModalAsync();
+
+			Assert.Equal(2, modal1Appearing);
+			Assert.Equal(2, modal1Disappearing);
+
+			Assert.Equal(1, modal2Appearing);
+			Assert.Equal(1, modal2Disappearing);
+
+			Assert.Equal(2, windowAppearing);
+			Assert.Equal(1, windowDisappearing);
+		}
+
+		[Fact]
 		public async Task BasicModalBehaviorTest()
 		{
 			Shell shell = new TestShell();
@@ -303,6 +347,20 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 
 			Assert.False(page1.Appearing);
 			Assert.True(page2.Appearing);
+		}
+
+		[Fact]
+		public async Task ParentSetsWhenPushingAndUnsetsWhenPopping()
+		{
+			var shell = new TestShell();
+
+			var item = CreateShellItem(shellSectionRoute: "section2");
+			shell.Items.Add(item);
+			await shell.GoToAsync($"ModalTestPage");
+			var modal1 = (shell.CurrentItem.CurrentItem as IShellSectionController).PresentedPage as ModalTestPageBase;
+			Assert.Equal(shell.Window, modal1.Parent);
+			await shell.GoToAsync("..");
+			Assert.Null(modal1.Parent);
 		}
 
 		[Fact]

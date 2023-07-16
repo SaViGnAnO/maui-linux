@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Microsoft.Maui.Platform;
 using PlatformView = UIKit.UIView;
 
 namespace Microsoft.Maui.Handlers
@@ -13,23 +14,18 @@ namespace Microsoft.Maui.Handlers
 
 			return new ContentView
 			{
-				CrossPlatformMeasure = VirtualView.CrossPlatformMeasure,
-				CrossPlatformArrange = VirtualView.CrossPlatformArrange
+				CrossPlatformLayout = VirtualView
 			};
 		}
 
 		protected override void ConnectHandler(ContentView platformView)
 		{
 			base.ConnectHandler(platformView);
-
-			platformView.LayoutSubviewsChanged += OnLayoutSubviewsChanged;
 		}
 
 		protected override void DisconnectHandler(ContentView platformView)
 		{
 			base.DisconnectHandler(platformView);
-
-			platformView.LayoutSubviewsChanged -= OnLayoutSubviewsChanged;
 		}
 
 		public override void SetVirtualView(IView view)
@@ -39,8 +35,7 @@ namespace Microsoft.Maui.Handlers
 			_ = VirtualView ?? throw new InvalidOperationException($"{nameof(VirtualView)} should have been set by base class.");
 
 			PlatformView.View = view;
-			PlatformView.CrossPlatformMeasure = VirtualView.CrossPlatformMeasure;
-			PlatformView.CrossPlatformArrange = VirtualView.CrossPlatformArrange;
+			PlatformView.CrossPlatformLayout = VirtualView;
 		}
 
 		static void UpdateContent(IBorderHandler handler)
@@ -49,22 +44,20 @@ namespace Microsoft.Maui.Handlers
 			_ = handler.VirtualView ?? throw new InvalidOperationException($"{nameof(VirtualView)} should have been set by base class.");
 			_ = handler.MauiContext ?? throw new InvalidOperationException($"{nameof(MauiContext)} should have been set by base class.");
 
-			//Cleanup the old view when reused
+			// Cleanup the old view when reused
 			var oldChildren = handler.PlatformView.Subviews.ToList();
 			oldChildren.ForEach(x => x.RemoveFromSuperview());
 
 			if (handler.VirtualView.PresentedContent is IView view)
+			{
 				handler.PlatformView.AddSubview(view.ToPlatform(handler.MauiContext));
+				handler.PlatformView.ChildMaskLayer = null;
+			}
 		}
 
 		public static void MapContent(IBorderHandler handler, IBorderView border)
 		{
 			UpdateContent(handler);
-		}
-
-		void OnLayoutSubviewsChanged(object? sender, EventArgs e)
-		{
-			PlatformView?.UpdateMauiCALayer();
 		}
 	}
 }

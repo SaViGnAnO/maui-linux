@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.DeviceTests.Stubs;
@@ -10,7 +10,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Xunit;
 
-//using NativeTextAlignment = Microsoft.UI.Xaml.TextAlignment;
+using NativeVerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment;
 
 namespace Microsoft.Maui.DeviceTests
 {
@@ -49,11 +49,29 @@ namespace Microsoft.Maui.DeviceTests
 		bool GetNativeIsTextPredictionEnabled(EditorHandler editorHandler) =>
 			GetNativeEditor(editorHandler).IsTextPredictionEnabled;
 
+		bool GetNativeIsSpellCheckEnabled(EditorHandler editorHandler) =>
+			GetNativeEditor(editorHandler).IsSpellCheckEnabled;
+
 		Color GetNativeTextColor(EditorHandler editorHandler) =>
 			GetNativeEditor(editorHandler).Resources.TryGet<SolidColorBrush>("TextControlForeground").ToColor();
 
 		//NativeTextAlignment GetNativeHorizontalTextAlignment(EditorHandler editorHandler) =>
 		//	GetNativeEditor(editorHandler).TextAlignment;
+
+		NativeVerticalAlignment GetNativeVerticalTextAlignment(EditorHandler editorHandler)
+		{
+			var textBox = GetNativeEditor(editorHandler);
+
+			var sv = textBox.GetDescendantByName<ScrollViewer>("ContentElement");
+			var placeholder = textBox.GetDescendantByName<TextBlock>("PlaceholderTextContentPresenter");
+
+			Assert.Equal(sv.VerticalAlignment, placeholder.VerticalAlignment);
+
+			return sv.VerticalAlignment;
+		}
+
+		NativeVerticalAlignment GetNativeVerticalTextAlignment(TextAlignment textAlignment) =>
+			textAlignment.ToPlatformVerticalAlignment();
 
 		bool IsInputScopeEquals(InputScope inputScope, InputScopeNameValue nameValue)
 		{

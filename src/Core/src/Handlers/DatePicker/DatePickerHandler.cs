@@ -42,7 +42,13 @@ namespace Microsoft.Maui.Handlers
 		{
 		}
 
-		public DatePickerHandler(IPropertyMapper mapper) : base(mapper)
+		public DatePickerHandler(IPropertyMapper? mapper)
+			: base(mapper ?? Mapper, CommandMapper)
+		{
+		}
+
+		public DatePickerHandler(IPropertyMapper? mapper, CommandMapper? commandMapper)
+			: base(mapper ?? Mapper, commandMapper ?? CommandMapper)
 		{
 		}
 

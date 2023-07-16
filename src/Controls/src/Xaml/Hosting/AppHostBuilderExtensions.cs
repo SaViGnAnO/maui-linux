@@ -56,7 +56,7 @@ namespace Microsoft.Maui.Controls.Hosting
 			handlersCollection.AddHandler<CarouselView, CarouselViewHandler>();
 			handlersCollection.AddHandler<Application, ApplicationHandler>();
 			handlersCollection.AddHandler<ActivityIndicator, ActivityIndicatorHandler>();
-			handlersCollection.AddHandler<BoxView, ShapeViewHandler>();
+			handlersCollection.AddHandler<BoxView, BoxViewHandler>();
 			handlersCollection.AddHandler<Button, ButtonHandler>();
 			handlersCollection.AddHandler<CheckBox, CheckBoxHandler>();
 			handlersCollection.AddHandler<DatePicker, DatePickerHandler>();

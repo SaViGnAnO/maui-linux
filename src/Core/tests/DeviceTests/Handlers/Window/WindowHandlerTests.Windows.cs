@@ -8,7 +8,7 @@ using WVisibility = Microsoft.UI.Xaml.Visibility;
 
 namespace Microsoft.Maui.DeviceTests
 {
-	public partial class WindowHandlerTests : HandlerTestBase
+	public partial class WindowHandlerTests : CoreHandlerTestBase
 	{
 		[Fact(DisplayName = "Back Button Not Visible With No Navigation Page")]
 		public async Task BackButtonNotVisibleWithBasicView()
@@ -215,7 +215,7 @@ namespace Microsoft.Maui.DeviceTests
 					};
 
 					await action.Invoke(windowManager);
-				});
+				}, MauiContext);
 
 				return;
 			});

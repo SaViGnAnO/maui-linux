@@ -24,12 +24,13 @@ namespace Microsoft.Maui.Handlers
 		{
 #if WINDOWS
 			[nameof(IMenuFlyoutSubItem.Text)] = MapText,
+			[nameof(IMenuElement.Accelerators)] = MapAccelerator,
 			[nameof(IMenuElement.Source)] = MapSource,
 			[nameof(IMenuElement.IsEnabled)] = MapIsEnabled
 #endif
 		};
 
-		public static CommandMapper<IMenuFlyoutSubItem, IMenuFlyoutItemHandler> CommandMapper = new(ElementCommandMapper)
+		public static CommandMapper<IMenuFlyoutItem, IMenuFlyoutItemHandler> CommandMapper = new(ElementCommandMapper)
 		{
 		};
 

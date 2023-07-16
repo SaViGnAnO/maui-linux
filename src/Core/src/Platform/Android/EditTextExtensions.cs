@@ -65,15 +65,44 @@ namespace Microsoft.Maui.Platform
 
 		public static void UpdateIsTextPredictionEnabled(this EditText editText, IEntry entry)
 		{
-			editText.SetInputType(entry);
+			editText.UpdateIsTextPredictionEnabled(entry as ITextInput);
+		}
+
+		public static void UpdateIsSpellCheckEnabled(this EditText editText, IEntry entry)
+		{
+			editText.UpdateIsSpellCheckEnabled(entry as ITextInput);
 		}
 
 		public static void UpdateIsTextPredictionEnabled(this EditText editText, IEditor editor)
 		{
-			if (editor.IsTextPredictionEnabled)
-				editText.InputType &= ~InputTypes.TextFlagNoSuggestions;
+			editText.UpdateIsTextPredictionEnabled(editor as ITextInput);
+		}
+
+		public static void UpdateIsSpellCheckEnabled(this EditText editText, IEditor editor)
+		{
+			editText.UpdateIsSpellCheckEnabled(editor as ITextInput);
+		}
+
+		private static void UpdateIsTextPredictionEnabled(this EditText editText, ITextInput textInput)
+		{
+			var keyboard = textInput.Keyboard;
+
+			// TextFlagAutoCorrect will correct "Whats" -> "What's"
+			// TextFlagAutoCorrect should not be confused with TextFlagAutocomplete
+			// Autocomplete property pertains to fields that will "self-fill" - like an "Address" input box that fills with your saved data
+			if (textInput.IsTextPredictionEnabled)
+				editText.InputType |= InputTypes.TextFlagAutoCorrect;
 			else
+				editText.InputType &= ~InputTypes.TextFlagAutoCorrect;
+		}
+
+		private static void UpdateIsSpellCheckEnabled(this EditText editText, ITextInput textInput)
+		{
+			// TextFlagNoSuggestions disables spellchecking (the red squiggly lines)
+			if (!textInput.IsSpellCheckEnabled)
 				editText.InputType |= InputTypes.TextFlagNoSuggestions;
+			else
+				editText.InputType &= ~InputTypes.TextFlagNoSuggestions;
 		}
 
 		public static void UpdateMaxLength(this EditText editText, IEntry entry) =>
@@ -82,42 +111,11 @@ namespace Microsoft.Maui.Platform
 		public static void UpdateMaxLength(this EditText editText, IEditor editor) =>
 			UpdateMaxLength(editText, editor.MaxLength);
 
-		public static void UpdateMaxLength(this EditText editText, int maxLength)
-		{
-			editText.SetLengthFilter(maxLength);
+		public static void UpdateMaxLength(this EditText editText, int maxLength) =>
+			PlatformInterop.UpdateMaxLength(editText, maxLength);
 
-			var newText = editText.Text.TrimToMaxLength(maxLength);
-			if (editText.Text != newText)
-				editText.Text = newText;
-		}
-
-		public static void SetLengthFilter(this EditText editText, int maxLength)
-		{
-			if (maxLength == -1)
-				maxLength = int.MaxValue;
-
-			var currentFilters = new List<IInputFilter>(editText.GetFilters() ?? new IInputFilter[0]);
-			var changed = false;
-
-			for (var i = 0; i < currentFilters.Count; i++)
-			{
-				if (currentFilters[i] is InputFilterLengthFilter)
-				{
-					currentFilters.RemoveAt(i);
-					changed = true;
-					break;
-				}
-			}
-
-			if (maxLength >= 0)
-			{
-				currentFilters.Add(new InputFilterLengthFilter(maxLength));
-				changed = true;
-			}
-
-			if (changed)
-				editText.SetFilters(currentFilters.ToArray());
-		}
+		public static void SetLengthFilter(this EditText editText, int maxLength) =>
+			PlatformInterop.SetLengthFilter(editText, maxLength);
 
 		public static void UpdatePlaceholder(this EditText editText, IPlaceholder textInput)
 		{
@@ -172,11 +170,11 @@ namespace Microsoft.Maui.Platform
 			editText.SetCursorVisible(isReadOnly);
 		}
 
-		// TODO: NET7 hartez - Remove this, nothing uses it
+		// TODO: NET8 hartez - Remove this, nothing uses it
 		public static void UpdateClearButtonVisibility(this EditText editText, IEntry entry, Drawable? clearButtonDrawable) =>
 			UpdateClearButtonVisibility(editText, entry, () => clearButtonDrawable);
 
-		// TODO: NET7 hartez - Remove the getClearButtonDrawable parameter, nothing uses it
+		// TODO: NET8 hartez - Remove the getClearButtonDrawable parameter, nothing uses it
 		public static void UpdateClearButtonVisibility(this EditText editText, IEntry entry, Func<Drawable?>? getClearButtonDrawable)
 		{
 			if (entry?.Handler is not EntryHandler entryHandler)
@@ -206,7 +204,7 @@ namespace Microsoft.Maui.Platform
 			editText.ImeOptions = entry.ReturnType.ToPlatform();
 		}
 
-		// TODO: NET7 issoto - Revisit this, marking this method as `internal` to avoid breaking public API changes
+		// TODO: NET8 issoto - Revisit this, marking this method as `internal` to avoid breaking public API changes
 		internal static int GetCursorPosition(this EditText editText, int cursorOffset = 0)
 		{
 			var newCursorPosition = editText.SelectionStart + cursorOffset;
@@ -269,7 +267,7 @@ namespace Microsoft.Maui.Platform
 			return end;
 		}
 
-		// TODO: NET7 issoto - Revisit this, marking this method as `internal` to avoid breaking public API changes
+		// TODO: NET8 issoto - Revisit this, marking this method as `internal` to avoid breaking public API changes
 		internal static int GetSelectedTextLength(this EditText editText)
 		{
 			var selectedLength = editText.SelectionEnd - editText.SelectionStart;
@@ -280,17 +278,13 @@ namespace Microsoft.Maui.Platform
 		{
 			var previousCursorPosition = editText.SelectionStart;
 			var keyboard = textInput.Keyboard;
-			var nativeInputTypeToUpdate = keyboard.ToInputType();
+
+			editText.InputType = keyboard.ToInputType();
 
 			if (keyboard is not CustomKeyboard)
 			{
-				// TODO: IsSpellCheckEnabled handling must be here.
-
-				if ((nativeInputTypeToUpdate & InputTypes.TextFlagNoSuggestions) != InputTypes.TextFlagNoSuggestions)
-				{
-					if (!textInput.IsTextPredictionEnabled)
-						nativeInputTypeToUpdate |= InputTypes.TextFlagNoSuggestions;
-				}
+				editText.UpdateIsTextPredictionEnabled(textInput);
+				editText.UpdateIsSpellCheckEnabled(textInput);
 			}
 
 			if (keyboard == Keyboard.Numeric)
@@ -298,25 +292,18 @@ namespace Microsoft.Maui.Platform
 				editText.KeyListener = LocalizedDigitsKeyListener.Create(editText.InputType);
 			}
 
-			bool hasPassword = false;
-
 			if (textInput is IEntry entry && entry.IsPassword)
 			{
-				if ((nativeInputTypeToUpdate & InputTypes.ClassText) == InputTypes.ClassText)
-					nativeInputTypeToUpdate |= InputTypes.TextVariationPassword;
-
-				if ((nativeInputTypeToUpdate & InputTypes.ClassNumber) == InputTypes.ClassNumber)
-					nativeInputTypeToUpdate |= InputTypes.NumberVariationPassword;
-
-				hasPassword = true;
+				if (editText.InputType.HasFlag(InputTypes.ClassText))
+					editText.InputType |= InputTypes.TextVariationPassword;
+				if (editText.InputType.HasFlag(InputTypes.ClassNumber))
+					editText.InputType |= InputTypes.NumberVariationPassword;
 			}
-
-			editText.InputType = nativeInputTypeToUpdate;
 
 			if (textInput is IEditor)
 				editText.InputType |= InputTypes.TextFlagMultiLine;
 
-			if (hasPassword && textInput is IElement element)
+			if (textInput is IElement element)
 			{
 				var services = element.Handler?.MauiContext?.Services;
 
@@ -332,13 +319,14 @@ namespace Microsoft.Maui.Platform
 			editText.SetSelection(previousCursorPosition);
 		}
 
-		internal static bool IsCompletedAction(this EditorActionEventArgs e)
+		internal static bool IsCompletedAction(this EditorActionEventArgs e, ImeAction? currentInputImeFlag)
 		{
 			var actionId = e.ActionId;
 			var evt = e.Event;
 
 			return
 				actionId == ImeAction.Done ||
+				actionId == currentInputImeFlag ||
 				(actionId == ImeAction.ImeNull && evt?.KeyCode == Keycode.Enter && evt?.Action == KeyEventActions.Up);
 		}
 
@@ -356,16 +344,16 @@ namespace Microsoft.Maui.Platform
 			if (motionEvent is null)
 				return false;
 
+			if (motionEvent.Action != MotionEventActions.Up)
+				return false;
+
 			var rBounds = getClearButtonDrawable?.Invoke()?.Bounds;
 			var buttonWidth = rBounds?.Width();
 
 			if (buttonWidth <= 0)
 				return false;
 
-			if (motionEvent.Action != MotionEventActions.Up)
-				return false;
-
-			var x = motionEvent.RawX;
+			var x = motionEvent.GetX();
 			var y = motionEvent.GetY();
 
 			var flowDirection = platformView.LayoutDirection;

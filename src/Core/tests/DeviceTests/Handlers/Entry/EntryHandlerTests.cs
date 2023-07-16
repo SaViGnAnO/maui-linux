@@ -4,12 +4,13 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.DeviceTests.Stubs;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Handlers;
+using Microsoft.Maui.Hosting;
 using Xunit;
 
 namespace Microsoft.Maui.DeviceTests
 {
 	[Category(TestCategory.Entry)]
-	public partial class EntryHandlerTests : HandlerTestBase<EntryHandler, EntryStub>
+	public partial class EntryHandlerTests : CoreHandlerTestBase<EntryHandler, EntryStub>
 	{
 		[Fact(DisplayName = "Text Initializes Correctly")]
 		public async Task TextInitializesCorrectly()
@@ -70,19 +71,6 @@ namespace Microsoft.Maui.DeviceTests
 			await ValidatePropertyInitValue(entry, () => entry.Placeholder, GetNativePlaceholder, "Placeholder");
 		}
 
-		[Theory(DisplayName = "Is Text Prediction Enabled")]
-		[InlineData(true)]
-		[InlineData(false)]
-		public async Task IsTextPredictionEnabledCorrectly(bool isEnabled)
-		{
-			var entry = new EntryStub()
-			{
-				IsTextPredictionEnabled = isEnabled
-			};
-
-			await ValidatePropertyInitValue(entry, () => entry.IsTextPredictionEnabled, GetNativeIsTextPredictionEnabled, isEnabled);
-		}
-
 		[Theory(DisplayName = "IsPassword Updates Correctly")]
 		[InlineData(true, true)]
 		[InlineData(true, false)]
@@ -101,8 +89,8 @@ namespace Microsoft.Maui.DeviceTests
 		}
 
 		[Theory(DisplayName = "TextColor Updates Correctly")]
-		[InlineData(0xFF0000, 0x0000FF)]
-		[InlineData(0x0000FF, 0xFF0000)]
+		[InlineData(0xFFFF0000, 0xFF0000FF)]
+		[InlineData(0xFF0000FF, 0xFFFF0000)]
 		public async Task TextColorUpdatesCorrectly(uint setValue, uint unsetValue)
 		{
 			var entry = new EntryStub();
@@ -141,6 +129,42 @@ namespace Microsoft.Maui.DeviceTests
 				unsetValue);
 		}
 
+		[Theory(DisplayName = "IsTextPredictionEnabled Initializes Correctly")]
+		[InlineData(true)]
+		[InlineData(false)]
+		public async Task IsTextPredictionEnabledInitializesCorrectly(bool isEnabled)
+		{
+			var entry = new EntryStub()
+			{
+				IsTextPredictionEnabled = isEnabled
+			};
+
+			await AttachAndRun(entry, async (entryHandler) =>
+			{
+				await AssertionExtensions.Wait(() => entryHandler.PlatformView.IsLoaded());
+			});
+
+			await ValidatePropertyInitValue(entry, () => entry.IsTextPredictionEnabled, GetNativeIsTextPredictionEnabled, isEnabled);
+		}
+
+		[Theory(DisplayName = "IsSpellCheckEnabled Initializes Correctly")]
+		[InlineData(true)]
+		[InlineData(false)]
+		public async Task IsSpellCheckEnabledInitializesCorrectly(bool isEnabled)
+		{
+			var entry = new EntryStub()
+			{
+				IsSpellCheckEnabled = isEnabled
+			};
+
+			await AttachAndRun(entry, async (entryHandler) =>
+			{
+				await AssertionExtensions.Wait(() => entryHandler.PlatformView.IsLoaded());
+			});
+
+			await ValidatePropertyInitValue(entry, () => entry.IsSpellCheckEnabled, GetNativeIsSpellCheckEnabled, isEnabled);
+		}
+
 		[Theory(DisplayName = "IsTextPredictionEnabled Updates Correctly")]
 		[InlineData(true, true)]
 		[InlineData(true, false)]
@@ -148,7 +172,15 @@ namespace Microsoft.Maui.DeviceTests
 		[InlineData(false, false)]
 		public async Task IsTextPredictionEnabledUpdatesCorrectly(bool setValue, bool unsetValue)
 		{
-			var entry = new EntryStub();
+			var entry = new EntryStub()
+			{
+				IsTextPredictionEnabled = setValue
+			};
+
+			await AttachAndRun(entry, async (entryHandler) =>
+			{
+				await AssertionExtensions.Wait(() => entryHandler.PlatformView.IsLoaded());
+			});
 
 			await ValidatePropertyUpdatesValue(
 				entry,
@@ -156,6 +188,58 @@ namespace Microsoft.Maui.DeviceTests
 				GetNativeIsTextPredictionEnabled,
 				setValue,
 				unsetValue);
+		}
+
+		[Theory(DisplayName = "IsSpellCheckEnabled Updates Correctly")]
+		[InlineData(true, true)]
+		[InlineData(true, false)]
+		[InlineData(false, true)]
+		[InlineData(false, false)]
+		public async Task IsSpellCheckEnabledUpdatesCorrectly(bool setValue, bool unsetValue)
+		{
+			var entry = new EntryStub()
+			{
+				IsSpellCheckEnabled = setValue
+			};
+
+			await AttachAndRun(entry, async (entryHandler) =>
+			{
+				await AssertionExtensions.Wait(() => entryHandler.PlatformView.IsLoaded());
+			});
+
+			await ValidatePropertyUpdatesValue(
+				entry,
+				nameof(IEntry.IsSpellCheckEnabled),
+				GetNativeIsSpellCheckEnabled,
+				setValue,
+				unsetValue);
+		}
+
+		[Theory(DisplayName = "IsTextPredictionEnabled differs from IsSpellCheckEnabled")]
+		[InlineData(true, true)]
+		[InlineData(true, false)]
+		[InlineData(false, true)]
+		[InlineData(false, false)]
+		public async Task TextPredictionDiffersFromSpellChecking(bool textPredictionValue, bool spellCheckValue)
+		{
+			// Test to prevent: https://github.com/dotnet/maui/issues/8558
+			var areValuesEqual = textPredictionValue == spellCheckValue;
+
+			var entry = new EntryStub()
+			{
+				IsTextPredictionEnabled = textPredictionValue,
+				IsSpellCheckEnabled = spellCheckValue
+			};
+
+			await AttachAndRun(entry, async (entryHandler) =>
+			{
+				await AssertionExtensions.Wait(() => entryHandler.PlatformView.IsLoaded());
+			});
+
+			var nativeTextPrediction = await GetValueAsync(entry, GetNativeIsTextPredictionEnabled);
+			var nativeSpellChecking = await GetValueAsync(entry, GetNativeIsSpellCheckEnabled);
+
+			Assert.Equal(areValuesEqual, (nativeTextPrediction == nativeSpellChecking));
 		}
 
 		[Theory(DisplayName = "IsReadOnly Updates Correctly")]
@@ -263,21 +347,30 @@ namespace Microsoft.Maui.DeviceTests
 		}
 
 		[Theory(DisplayName = "Validates Text Keyboard")]
-		[InlineData(nameof(Keyboard.Chat), false)]
-#if WINDOWS
-		// The Text keyboard is the default one on Windows
-		[InlineData(nameof(Keyboard.Default), true)]
-		// Plain is the same as the Default keyboard on Windows
-		[InlineData(nameof(Keyboard.Plain), true)]
+#if ANDROID || IOS || MACCATALYST
+		// Android text and Chat keyboards are the same
+		[InlineData(nameof(Keyboard.Chat), true)]
 #else
-		[InlineData(nameof(Keyboard.Default), false)]
-		[InlineData(nameof(Keyboard.Plain), false)]
+		[InlineData(nameof(Keyboard.Chat), false)]
 #endif
 		[InlineData(nameof(Keyboard.Email), false)]
 		[InlineData(nameof(Keyboard.Numeric), false)]
 		[InlineData(nameof(Keyboard.Telephone), false)]
 		[InlineData(nameof(Keyboard.Text), true)]
 		[InlineData(nameof(Keyboard.Url), false)]
+#if WINDOWS
+		// The Text keyboard is the default one on Windows
+		[InlineData(nameof(Keyboard.Default), true)]
+		// Plain is the same as the Default keyboard on Windows
+		[InlineData(nameof(Keyboard.Plain), true)]
+#elif IOS || MACCATALYST
+		// On ios the text and default keyboards are the same
+		[InlineData(nameof(Keyboard.Default), true)]
+		[InlineData(nameof(Keyboard.Plain), false)]
+#else
+		[InlineData(nameof(Keyboard.Default), false)]
+		[InlineData(nameof(Keyboard.Plain), false)]
+#endif
 		public async Task ValidateTextKeyboard(string keyboardName, bool expected)
 		{
 			var keyboard = (Keyboard)typeof(Keyboard).GetProperty(keyboardName).GetValue(null);
@@ -289,12 +382,22 @@ namespace Microsoft.Maui.DeviceTests
 
 		[Theory(DisplayName = "Validates Chat Keyboard")]
 		[InlineData(nameof(Keyboard.Chat), true)]
+#if IOS || MACCATALYST
+		// On iOS the default and chat keyboard are the same
+		[InlineData(nameof(Keyboard.Default), true)]
+#else
 		[InlineData(nameof(Keyboard.Default), false)]
+#endif
 		[InlineData(nameof(Keyboard.Email), false)]
 		[InlineData(nameof(Keyboard.Numeric), false)]
 		[InlineData(nameof(Keyboard.Plain), false)]
 		[InlineData(nameof(Keyboard.Telephone), false)]
+#if ANDROID || IOS || MACCATALYST
+		// Android & iOS text and Chat keyboards are the same
+		[InlineData(nameof(Keyboard.Text), true)]
+#else
 		[InlineData(nameof(Keyboard.Text), false)]
+#endif
 		[InlineData(nameof(Keyboard.Url), false)]
 		public async Task ValidateChatKeyboard(string keyboardName, bool expected)
 		{
@@ -310,6 +413,7 @@ namespace Microsoft.Maui.DeviceTests
 			, Skip = "https://github.com/dotnet/maui/issues/7939"
 #endif
 			)]
+		[InlineData(0)]
 		[InlineData(2)]
 		[InlineData(5)]
 		[InlineData(8)]
@@ -357,6 +461,7 @@ namespace Microsoft.Maui.DeviceTests
 			, Skip = "https://github.com/dotnet/maui/issues/7939"
 #endif
 		)]
+		[InlineData(0)]
 		[InlineData(2)]
 		[InlineData(5)]
 		[InlineData(8)]
@@ -492,6 +597,142 @@ namespace Microsoft.Maui.DeviceTests
 				GetNativeHorizontalTextAlignment,
 				nameof(IEntry.CharacterSpacing),
 				() => entry.CharacterSpacing = newSize);
+		}
+
+		[Theory(DisplayName = "Vertical TextAlignment Initializes Correctly")]
+		[InlineData(TextAlignment.Start)]
+		[InlineData(TextAlignment.Center)]
+		[InlineData(TextAlignment.End)]
+		public async Task VerticalTextAlignmentInitializesCorrectly(TextAlignment textAlignment)
+		{
+			var entry = new EntryStub
+			{
+				VerticalTextAlignment = textAlignment
+			};
+
+			var platformAlignment = GetNativeVerticalTextAlignment(textAlignment);
+
+			var values = await AttachAndRun(entry, (handler) =>
+					new
+					{
+						ViewValue = entry.VerticalTextAlignment,
+						PlatformViewValue = GetNativeVerticalTextAlignment(handler)
+					});
+
+			Assert.Equal(textAlignment, values.ViewValue);
+			Assert.Equal(platformAlignment, values.PlatformViewValue);
+		}
+
+#if ANDROID
+		[Fact]
+		public async Task NextMovesToNextEntrySuccessfully()
+		{
+			EnsureHandlerCreated(builder =>
+			{
+				builder.ConfigureMauiHandlers(handler =>
+				{
+					handler.AddHandler<VerticalStackLayoutStub, LayoutHandler>();
+					handler.AddHandler<EntryStub, EntryHandler>();
+				});
+			});
+
+			var layout = new VerticalStackLayoutStub();
+
+			var entry1 = new EntryStub
+			{
+				Text = "Entry 1",
+				ReturnType = ReturnType.Next
+			};
+
+			var entry2 = new EntryStub
+			{
+				Text = "Entry 2",
+				ReturnType = ReturnType.Next
+			};
+
+			layout.Add(entry1);
+			layout.Add(entry2);
+
+			layout.Width = 100;
+			layout.Height = 150;
+
+			await InvokeOnMainThreadAsync(async () =>
+			{
+				var contentViewHandler = CreateHandler<LayoutHandler>(layout);
+				await contentViewHandler.PlatformView.AttachAndRun(async () =>
+				{
+					await entry1.SendKeyboardReturnType(ReturnType.Next);
+					await entry2.WaitForFocused();
+					Assert.True(entry2.IsFocused);
+				});
+			});
+		}
+
+		[Fact]
+		public async Task DoneClosesKeyboard()
+		{
+			EnsureHandlerCreated(builder =>
+			{
+				builder.ConfigureMauiHandlers(handler =>
+				{
+					handler.AddHandler<VerticalStackLayoutStub, LayoutHandler>();
+					handler.AddHandler<EntryStub, EntryHandler>();
+				});
+			});
+
+			var layout = new VerticalStackLayoutStub();
+
+			var entry1 = new EntryStub
+			{
+				Text = "Entry 1",
+				ReturnType = ReturnType.Done
+			};
+
+			var entry2 = new EntryStub
+			{
+				Text = "Entry 2",
+				ReturnType = ReturnType.Done
+			};
+
+			layout.Add(entry1);
+			layout.Add(entry2);
+
+			layout.Width = 100;
+			layout.Height = 150;
+
+			await InvokeOnMainThreadAsync(async () =>
+			{
+				var handler = CreateHandler<LayoutHandler>(layout);
+				await handler.PlatformView.AttachAndRun(async () =>
+				{
+					await entry1.SendKeyboardReturnType(ReturnType.Done);
+					await entry1.WaitForKeyboardToHide();
+				});
+			});
+		}
+#endif
+
+		[Category(TestCategory.Entry)]
+		public class EntryTextStyleTests : TextStyleHandlerTests<EntryHandler, EntryStub>
+		{
+		}
+
+		[Category(TestCategory.Entry)]
+		public class EntryFocusTests : FocusHandlerTests<EntryHandler, EntryStub, VerticalStackLayoutStub>
+		{
+		}
+
+		[Category(TestCategory.Entry)]
+		public class EntryTextInputTests : TextInputHandlerTests<EntryHandler, EntryStub>
+		{
+			protected override void SetNativeText(EntryHandler entryHandler, string text) =>
+				EntryHandlerTests.SetNativeText(entryHandler, text);
+
+			protected override int GetCursorStartPosition(EntryHandler entryHandler) =>
+				EntryHandlerTests.GetCursorStartPosition(entryHandler);
+
+			protected override void UpdateCursorStartPosition(EntryHandler entryHandler, int position) =>
+				EntryHandlerTests.UpdateCursorStartPosition(entryHandler, position);
 		}
 	}
 }

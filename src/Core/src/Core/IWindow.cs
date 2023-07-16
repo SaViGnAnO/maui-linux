@@ -1,5 +1,5 @@
-using Microsoft.Maui.Graphics;
 using System.Collections.Generic;
+using Microsoft.Maui.Graphics;
 
 namespace Microsoft.Maui
 {
@@ -64,6 +64,11 @@ namespace Microsoft.Maui
 		double MaximumHeight { get; }
 
 		/// <summary>
+		/// Direction in which the UI elements are scanned by the eye.
+		/// </summary>
+		FlowDirection FlowDirection { get; }
+
+		/// <summary>
 		/// Adds a Window Overlay to the current Window.
 		/// </summary>
 		/// <param name="overlay"><see cref="IWindowOverlay"/>.</param>
@@ -118,12 +123,14 @@ namespace Microsoft.Maui
 		/// <returns>Whether or not the back navigation was handled.</returns>
 		bool BackButtonClicked();
 
-		FlowDirection FlowDirection { get; }
-
 		void DisplayDensityChanged(float displayDensity);
 
 		void FrameChanged(Rect frame);
 
 		float RequestDisplayDensity();
+
+#if WINDOWS
+		Rect[]? TitleBarDragRectangles => null;
+#endif
 	}
 }

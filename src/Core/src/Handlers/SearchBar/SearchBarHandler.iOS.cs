@@ -28,7 +28,9 @@ namespace Microsoft.Maui.Handlers
 			platformView.TextSetOrChanged += OnTextPropertySet;
 			platformView.OnMovedToWindow += OnMovedToWindow;
 			platformView.ShouldChangeTextInRange += ShouldChangeText;
+			platformView.OnEditingStarted += OnEditingStarted;
 			platformView.EditingChanged += OnEditingChanged;
+			platformView.OnEditingStopped += OnEditingStopped;
 
 			base.ConnectHandler(platformView);
 		}
@@ -47,7 +49,9 @@ namespace Microsoft.Maui.Handlers
 			platformView.TextSetOrChanged -= OnTextPropertySet;
 			platformView.ShouldChangeTextInRange -= ShouldChangeText;
 			platformView.OnMovedToWindow -= OnMovedToWindow;
+			platformView.OnEditingStarted -= OnEditingStarted;
 			platformView.EditingChanged -= OnEditingChanged;
+			platformView.OnEditingStopped -= OnEditingStopped;
 
 			base.DisconnectHandler(platformView);
 		}
@@ -63,7 +67,7 @@ namespace Microsoft.Maui.Handlers
 			return base.GetDesiredSize(widthConstraint, heightConstraint);
 		}
 
-		// TODO: NET7 make this public
+		// TODO: NET8 make this public
 		internal static void MapBackground(ISearchBarHandler handler, ISearchBar searchBar)
 		{
 			handler.PlatformView?.UpdateBackground(searchBar);
@@ -138,6 +142,11 @@ namespace Microsoft.Maui.Handlers
 			handler.PlatformView?.UpdateIsTextPredictionEnabled(searchBar, handler?.QueryEditor);
 		}
 
+		public static void MapIsSpellCheckEnabled(ISearchBarHandler handler, ISearchBar searchBar)
+		{
+			handler.PlatformView?.UpdateIsSpellCheckEnabled(searchBar, handler?.QueryEditor);
+		}
+
 		public static void MapMaxLength(ISearchBarHandler handler, ISearchBar searchBar)
 		{
 			handler.PlatformView?.UpdateMaxLength(searchBar);
@@ -151,6 +160,11 @@ namespace Microsoft.Maui.Handlers
 		public static void MapCancelButtonColor(ISearchBarHandler handler, ISearchBar searchBar)
 		{
 			handler.PlatformView?.UpdateCancelButton(searchBar);
+		}
+
+		public static void MapKeyboard(ISearchBarHandler handler, ISearchBar searchBar)
+		{
+			handler.PlatformView?.UpdateKeyboard(searchBar);
 		}
 
 		void OnCancelClicked(object? sender, EventArgs args)
@@ -177,6 +191,12 @@ namespace Microsoft.Maui.Handlers
 			return newLength <= VirtualView?.MaxLength;
 		}
 
+		void OnEditingStarted(object? sender, EventArgs e)
+		{
+			if (VirtualView is not null)
+				VirtualView.IsFocused = true;
+		}
+
 		void OnEditingChanged(object? sender, EventArgs e)
 		{
 			if (VirtualView == null || _editor == null)
@@ -185,6 +205,12 @@ namespace Microsoft.Maui.Handlers
 			VirtualView.UpdateText(_editor.Text);
 
 			UpdateCancelButtonVisibility();
+		}
+
+		void OnEditingStopped(object? sender, EventArgs e)
+		{
+			if (VirtualView is not null)
+				VirtualView.IsFocused = false;
 		}
 
 		void UpdateCancelButtonVisibility()

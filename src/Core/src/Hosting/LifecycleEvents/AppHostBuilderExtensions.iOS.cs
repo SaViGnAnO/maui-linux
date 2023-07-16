@@ -10,17 +10,22 @@ namespace Microsoft.Maui.LifecycleEvents
 		internal static MauiAppBuilder ConfigureCrossPlatformLifecycleEvents(this MauiAppBuilder builder) =>
 			builder.ConfigureLifecycleEvents(events => events.AddiOS(OnConfigureLifeCycle));
 
+		internal static MauiAppBuilder ConfigureWindowEvents(this MauiAppBuilder builder) =>
+			builder.ConfigureLifecycleEvents(events => events.AddiOS(OnConfigureWindow));
+
 		static void OnConfigureLifeCycle(IiOSLifecycleBuilder iOS)
 		{
 			iOS = iOS
 					.OnPlatformWindowCreated((window) =>
 					{
 						window.GetWindow()?.Created();
+						KeyboardAutoManagerScroll.Connect();
 					})
 					.WillTerminate(app =>
 					{
 						// By this point if we were a multi window app, the GetWindow would be null anyway
 						app.GetWindow()?.Destroying();
+						KeyboardAutoManagerScroll.Disconnect();
 					})
 					.WillEnterForeground(app =>
 					{
@@ -92,6 +97,30 @@ namespace Microsoft.Maui.LifecycleEvents
 
 					if (scene.Delegate is IUIWindowSceneDelegate sd)
 						sd.GetWindow().GetWindow()?.Destroying();
+				});
+		}
+
+		static void OnConfigureWindow(IiOSLifecycleBuilder iOS)
+		{
+			// Pre iOS 13 doesn't support scenes
+			if (!OperatingSystem.IsIOSVersionAtLeast(13))
+				return;
+
+			iOS = iOS
+				.WindowSceneDidUpdateCoordinateSpace((windowScene, _, _, _) =>
+				{
+					if (!OperatingSystem.IsIOSVersionAtLeast(13))
+						return;
+
+					if (windowScene.Delegate is not IUIWindowSceneDelegate wsd ||
+						wsd.GetWindow() is not UIWindow platformWindow)
+						return;
+
+					var window = platformWindow.GetWindow();
+					if (window is null)
+						return;
+
+					window.FrameChanged(platformWindow.Frame.ToRectangle());
 				});
 		}
 	}
